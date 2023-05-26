@@ -26,33 +26,35 @@ nodeBuild(
 **/
 
 def call(Map config = [:]) {
-    // Default to 'npm' if no package manager is specified
-    String packageManager = config.packageManager ?: 'npm'
+    def packageManager = config.packageManager ?: 'npm'
+    def toolsConfig = config.tools ?: [:]
+    def stagesConfig = config.stages ?: []
 
-    // Optional tools configuration
-    Map toolsConfig = config.tools ?: [:]
+    def toolsBlock = toolsConfig.collect { tool, version -> "${tool} '${version}'" }.join('\n')
 
-    // Stages configuration
-    List stagesConfig = config.stages ?: []
-
-    pipeline {
-        agent any
-        tools {
-            // If a Node.js version is specified, use it
-            if (toolsConfig.nodejs) {
-                nodejs toolsConfig.nodejs
-            }
-        }
-        stages {
-            stagesConfig.each { stageConfig ->
-                stage(stageConfig.name) {
-                    steps {
-                        script {
-                            stageConfig.step()
-                        }
-                    }
+    def stagesBlock = stagesConfig.collect { stageConfig ->
+        """
+        stage('${stageConfig.name}') {
+            steps {
+                script {
+                    ${stageConfig.step}
                 }
             }
         }
-    }
+        """
+    }.join('\n')
+
+    def pipelineScript = """
+        pipeline {
+            agent any
+            tools {
+                ${toolsBlock}
+            }
+            stages {
+                ${stagesBlock}
+            }
+        }
+    """
+
+    return evaluate(pipelineScript)
 }
