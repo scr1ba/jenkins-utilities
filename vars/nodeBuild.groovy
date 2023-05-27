@@ -21,7 +21,12 @@ nodeBuild(
                 sh 'pnpm test:fixtures'
             '''
         ]
-    ]
+    ],
+    post: [
+            failure: '''
+                fyi.credentials.NotificationUtils.sendFailureNotification('#cicd')
+            '''
+        ]
 )
 
 **/
@@ -30,6 +35,7 @@ def call(Map config = [:]) {
     def packageManager = config.packageManager ?: 'npm'
     def toolsConfig = config.tools ?: [:]
     def stagesConfig = config.stages ?: []
+    def postConfig = config.post ?: [:]
 
     def toolsBlock = toolsConfig.collect { tool, version -> "${tool} '${version}'" }.join('\n')
 
@@ -45,6 +51,16 @@ def call(Map config = [:]) {
         """
     }.join('\n')
 
+    def postBlock = postConfig.collect { condition, step ->
+        """
+        ${condition} {
+            script {
+                ${step}
+            }
+        }
+        """
+    }.join('\n')
+
     def pipelineScript = """
         pipeline {
             agent any
@@ -54,8 +70,12 @@ def call(Map config = [:]) {
             stages {
                 ${stagesBlock}
             }
+            post {
+                ${postBlock}
+            }
         }
     """
+
 
     return evaluate(pipelineScript)
 }
