@@ -5,24 +5,25 @@ nodeBuild(
     stages: [
         [
             name: 'Checkout',
-            step: {
+            step: '''
                 git branch: 'main', url: 'https://github.com/nuxt/nuxt.git'
-            }
+            '''
         ],
         [
             name: 'Install',
-            step: {
+            step: '''
                 sh 'pnpm install --shamefully-hoist'
-            }
+            '''
         ],
         [
             name: 'Test',
-            step: {
+            step: '''
                 sh 'pnpm test:fixtures'
-            }
+            '''
         ]
     ]
 )
+
 **/
 
 def call(Map config = [:]) {
