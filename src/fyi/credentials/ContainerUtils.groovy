@@ -24,7 +24,7 @@ class ContainerUtils implements Serializable {
                 script.sh(script: "docker tag ${imageName} ${fullImageName}")
 
                 // Push the image to GCR
-                script.sh(script: "gcloud docker -- push ${fullImageName}")
+                script.sh(script: "docker push ${fullImageName}")
             } else {
                 script.echo "The image ${imageName} does not exist. Cannot tag and push."
             }

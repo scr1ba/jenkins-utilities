@@ -1,12 +1,22 @@
 /** Usage in a Jenkinsfile:
+
 nodeBuild(
     packageManager: 'pnpm',
     tools: [nodejs: 'NodeJS 18 LTS'],
+    parameters: [
+        [type: 'string', name: 'MESSAGE', defaultValue: 'hello_world', description: 'Message to print']
+    ],
     stages: [
+        [
+            name: 'Print message',
+            step: '''
+                sh 'echo "${params.MESSAGE}"
+            '''
+        ],
         [
             name: 'Checkout',
             step: '''
-                git branch: 'main', url: 'https://github.com/nuxt/nuxt.git'
+                git branch: 'main', url: 'https://github.com/scr1ba/python-placeholder.git'
             '''
         ],
         [
@@ -20,13 +30,29 @@ nodeBuild(
             step: '''
                 sh 'pnpm test:fixtures'
             '''
-        ]
+        ],
+         [
+             name: 'Build Image',
+             step: '''
+                 sh 'docker build -t tiny-python-placeholder .'
+             '''
+         ],
+          [
+              name: 'Push Image',
+              step: '''
+                  sh 'docker tag tiny-python-placeholder europe-west4-docker.pkg.dev/euphoric-oath-385300/node-artifact-registry/tiny-python-placeholder:test-tag'
+                  sh 'docker push europe-west4-docker.pkg.dev/euphoric-oath-385300/node-artifact-registry/tiny-python-placeholder:test-tag'
+              '''
+          ]
     ],
     post: [
-            failure: '''
-                fyi.credentials.NotificationUtils.sendFailureNotification('#cicd')
-            '''
-        ]
+        failure: '''
+            sendFailureNotification('#cicd')
+        ''',
+        success: '''
+            sendSuccessNotification('#cicd')
+        ''',
+    ]
 )
 
 **/
@@ -61,9 +87,18 @@ def call(Map config = [:]) {
         """
     }.join('\n')
 
+    def parametersBlock = config.parameters.collect { param ->
+        """
+        ${param.type}(name: '${param.name}', defaultValue: '${param.defaultValue}', description: '${param.description}')
+        """
+    }.join('\n')
+
     def pipelineScript = """
         pipeline {
             agent any
+            parameters {
+                ${parametersBlock}
+             }
             tools {
                 ${toolsBlock}
             }
