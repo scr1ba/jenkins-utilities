@@ -10,7 +10,7 @@ nodeBuild(
         [type: 'choice', name: 'CHOICE', choices: 'Option1\nOption2\nOption3', description: 'A choice'], // Option1 is the default value
         [type: 'password', name: 'PASSWORD', defaultValue: '', description: 'A password'],
         [type: 'file', name: 'FILE', description: 'A file parameter'], // no default value
-        [type: 'credentials', name: 'MY_CREDS', credentialType: 'Username with password', required: true, defaultValue: '', description: 'My credentials'],
+        [type: 'credentials', name: 'MY_CREDS', defaultValue: 'slack-token', required: true, description: 'My credentials']
     ],
     stages: [
         [
@@ -131,7 +131,7 @@ def generateParameterBlock(Map param) {
             case 'file':
                 return "${param.type}(name: '${param.name}', description: '${param.description}')"
             case 'credentials':
-                return "${param.type}(credentialType: '${param.credentialType}', required: ${param.required}, defaultValue: '${param.defaultValue}', description: '${param.description}')"
+                return "${param.type}(name: '${param.name}', defaultValue: '${param.defaultValue}', description: '${param.description}')"
             default:
                 throw new IllegalArgumentException("Unknown parameter type: ${param.type}")
         }
