@@ -10,7 +10,7 @@ nodeBuild(
         [
             name: 'Print message',
             step: '''
-                sh 'echo "${params.MESSAGE}"
+                sh 'echo "${params.MESSAGE}"'
             '''
         ],
         [
