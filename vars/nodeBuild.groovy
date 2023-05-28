@@ -4,7 +4,13 @@ nodeBuild(
     packageManager: 'pnpm',
     tools: [nodejs: 'NodeJS 18 LTS'],
     parameters: [
-        [type: 'string', name: 'MESSAGE', defaultValue: 'hello_world', description: 'Message to print']
+        [type: 'string', name: 'MESSAGE', defaultValue: 'hello_world', description: 'Message to print'],
+        [type: 'text', name: 'MULTILINE', defaultValue: 'Line 1\nLine 2', description: 'Multiline text'],
+        [type: 'booleanParam', name: 'BOOLEAN', defaultValue: 'false', description: 'A boolean value'],
+        [type: 'choice', name: 'CHOICE', choices: 'Option1\nOption2\nOption3', description: 'A choice'], // Option1 is the default value
+        [type: 'password', name: 'PASSWORD', defaultValue: '', description: 'A password'],
+        [type: 'file', name: 'FILE', description: 'A file parameter'], // no default value
+        [type: 'credentials', name: 'MY_CREDS', credentialType: 'Username with password', required: true, defaultValue: '', description: 'My credentials'],
     ],
     stages: [
         [
@@ -40,8 +46,8 @@ nodeBuild(
           [
               name: 'Push Image',
               step: '''
-                  sh 'docker tag tiny-python-placeholder europe-west4-docker.pkg.dev/euphoric-oath-385300/node-artifact-registry/tiny-python-placeholder:test-tag'
-                  sh 'docker push europe-west4-docker.pkg.dev/euphoric-oath-385300/node-artifact-registry/tiny-python-placeholder:test-tag'
+                  sh 'docker tag tiny-python-placeholder $LOCATION_NAME/$PROJECT_ID/$REPOSITORY_NAME/tiny-python-placeholder:test-tag'
+                  sh 'docker push $LOCATION_NAME/$PROJECT_ID/$REPOSITORY_NAME/tiny-python-placeholder:test-tag'
               '''
           ]
     ],
@@ -88,9 +94,7 @@ def call(Map config = [:]) {
     }.join('\n')
 
     def parametersBlock = config.parameters.collect { param ->
-        """
-        ${param.type}(name: '${param.name}', defaultValue: '${param.defaultValue}', description: '${param.description}')
-        """
+        generateParameterBlock(param)
     }.join('\n')
 
     def pipelineScript = """
@@ -111,6 +115,24 @@ def call(Map config = [:]) {
         }
     """
 
-
     return evaluate(pipelineScript)
 }
+
+def generateParameterBlock(Map param) {
+        switch (param.type) {
+            case 'string':
+            case 'booleanParam':
+            case 'text':
+                return "${param.type}(name: '${param.name}', defaultValue: \"\"\"${param.defaultValue}\"\"\", description: '${param.description}')"
+            case 'password':
+                return "${param.type}(name: '${param.name}', defaultValue: '${param.defaultValue}', description: '${param.description}')"
+            case 'choice':
+                return "${param.type}(name: '${param.name}', choices: \"\"\"${param.choices}\"\"\", description: '${param.description}')"
+            case 'file':
+                return "${param.type}(name: '${param.name}', description: '${param.description}')"
+            case 'credentials':
+                return "${param.type}(credentialType: '${param.credentialType}', required: ${param.required}, defaultValue: '${param.defaultValue}', description: '${param.description}')"
+            default:
+                throw new IllegalArgumentException("Unknown parameter type: ${param.type}")
+        }
+    }
